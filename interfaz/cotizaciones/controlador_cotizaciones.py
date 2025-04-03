@@ -1,29 +1,10 @@
-# interfaz/cotizaciones/controlador_cotizaciones.py (simplificado)
 import threading
 import time
 import dearpygui.dearpygui as dpg
-from interfaz.cotizaciones.modelo_cotizaciones import (
-    obtener_tabla_cotizaciones, 
-    formatear_precio, 
-    formatear_porcentaje, 
-    formatear_volumen
-)
-from interfaz.cotizaciones.vista_cotizaciones import (
-    crear_panel_cotizaciones,
-    actualizar_tabla_ui,
-    actualizar_estado_boton,
-    actualizar_estado_auto_actualizacion
-)
+from interfaz.cotizaciones.modelo_cotizaciones import *
+from interfaz.cotizaciones.vista_cotizaciones import *
+from config import *
 
-# Estado de la aplicación
-INTERVALO_ACTUALIZACION = 30  # Segundos entre actualizaciones
-
-# Variables globales
-datos_cotizaciones = []
-actualizando = False
-auto_actualizacion = True
-hilo_auto_actualizacion = None
-detener_auto_actualizacion = False
 
 def actualizar_datos_thread(limite):
     """Función para actualizar datos en un hilo separado"""
@@ -36,13 +17,16 @@ def actualizar_datos_thread(limite):
         # Obtener datos
         datos_cotizaciones = obtener_tabla_cotizaciones(limite)
         
-        # Actualizar tabla
-        actualizar_tabla_ui(
+        # Recrear la tabla completa con los nuevos datos
+        crear_tabla_cotizaciones(
             datos_cotizaciones,
             formatear_precio,
             formatear_porcentaje,
             formatear_volumen
         )
+        
+        # Actualizar hora de actualización
+        actualizar_hora_actualizacion()
         
     except Exception as e:
         print(f"Error al actualizar datos: {e}")
@@ -59,7 +43,7 @@ def iniciar_actualizacion(sender, app_data, user_data):
             if dpg.does_item_exist("input_limite"):
                 limite = dpg.get_value("input_limite")
             else:
-                limite = 20  # Valor por defecto
+                limite = LIMITE_CRIPTOMONEDAS_DEFAULT
                 
             print(f"Iniciando hilo de actualización con límite: {limite}")
             thread = threading.Thread(target=actualizar_datos_thread, args=(limite,))

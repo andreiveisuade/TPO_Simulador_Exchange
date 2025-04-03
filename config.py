@@ -7,3 +7,9 @@ LIMITE_CRIPTOMONEDAS_DEFAULT = 20  # Número predeterminado de criptomonedas a m
 
 ANCHO_VENTANA = 1728
 ALTO_VENTANA = 972
+
+datos_cotizaciones = []
+actualizando = False
+auto_actualizacion = ACTUALIZACION_AUTOMATICA_HABILITADA
+hilo_auto_actualizacion = None
+detener_auto_actualizacion = False
