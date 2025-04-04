@@ -1,8 +1,8 @@
 from dearpygui.dearpygui import *
 from interfaz.cotizaciones.controlador_cotizaciones import inicializar_panel_cotizaciones, cargar_datos_iniciales
 from interfaz.temas import aplicar_tema_global, aplicar_tema_titulo
+from interfaz.grafico.integracion_grafico_velas import configurar_ventana_grafico
 
-# acá adentro hay que poner las funciones para crear las ventanas correspondientes y sus funciones
 def crear_ventana_principal():
     # Ventana de Cotizaciones
     with window(label="Cotizaciones", width=850, height=415, pos=(0, 0), tag="ventana_cotizaciones"):
@@ -14,14 +14,14 @@ def crear_ventana_principal():
         # Panel de cotizaciones
         inicializar_panel_cotizaciones()
     
-    # Ventana de Grafico
-    with window(label="Grafico", width=678, height=688, pos=(850, 000)):
+    # Ventana de Grafico - Ahora con tag para poder acceder desde el integrador
+    with window(label="Grafico", width=678, height=688, pos=(850, 000), tag="ventana_grafico"):
         add_spacer(height=5)
         add_text("GRAFICO", tag="titulo_grafico")
-        aplicar_tema_titulo("titulo_grafico")
         add_separator()
-        add_spacer(height=5)
-        add_text("Información del gráfico (en desarrollo)")
+        
+        # Configurar la ventana de gráfico de velas
+        configurar_ventana_grafico()
 
     # Ventana de Portafolio
     with window(label="Portafolio", width=850, height=273, pos=(0, 415)):
