@@ -5,19 +5,26 @@ from interfaz.temas import aplicar_tema_global, aplicar_tema_titulo
 # acá adentro hay que poner las funciones para crear las ventanas correspondientes y sus funciones
 def crear_ventana_principal():
     # Ventana de Cotizaciones
-    with window(label="Cotizaciones", width=1728, height=445, pos=(0, 0), tag="ventana_cotizaciones"):
+    with window(label="Cotizaciones", width=850, height=415, pos=(0, 0), tag="ventana_cotizaciones"):
         # Título (usando formato especial para destacarlo)
         add_spacer(height=5)
-        add_text("MERCADO DE CRIPTOMONEDAS", tag="titulo_cotizaciones")
+        add_text("MERCADO DE CRIPTOMONEDAS", tag="titulo_cotizaciones", show=False)
         aplicar_tema_titulo("titulo_cotizaciones")
-        add_separator() 
-        add_spacer(height=5)
         
         # Panel de cotizaciones
         inicializar_panel_cotizaciones()
+    
+    # Ventana de Grafico
+    with window(label="Grafico", width=678, height=688, pos=(850, 000)):
+        add_spacer(height=5)
+        add_text("GRAFICO", tag="titulo_grafico")
+        aplicar_tema_titulo("titulo_grafico")
+        add_separator()
+        add_spacer(height=5)
+        add_text("Información del gráfico (en desarrollo)")
 
     # Ventana de Portafolio
-    with window(label="Portafolio", width=1728, height=243, pos=(0, 445)):
+    with window(label="Portafolio", width=850, height=273, pos=(0, 415)):
         add_spacer(height=5)
         add_text("PORTAFOLIO", tag="titulo_portafolio")
         aplicar_tema_titulo("titulo_portafolio")
@@ -26,7 +33,7 @@ def crear_ventana_principal():
         add_text("Información del portafolio (en desarrollo)")
 
     # Ventana de Trading
-    with window(label="Trading", width=575, height=284, pos=(0, 688)):
+    with window(label="Trading", width=675, height=312, pos=(850, 688)):
         add_spacer(height=5)
         add_text("TRADING", tag="titulo_trading")
         aplicar_tema_titulo("titulo_trading")
@@ -35,7 +42,7 @@ def crear_ventana_principal():
         add_text("Herramientas de trading (en desarrollo)")
 
     # Ventana de Historial
-    with window(label="Historial", width=1153, height=284, pos=(575, 688)):
+    with window(label="Historial", width=850, height=312, pos=(0, 688)):
         add_spacer(height=5)
         add_text("HISTORIAL DE OPERACIONES", tag="titulo_historial")
         aplicar_tema_titulo("titulo_historial")
@@ -47,7 +54,7 @@ def crear_ventana_principal():
 def iniciar_ui():
     # Crear contexto
     create_context()
-    set_global_font_scale(1.25)
+    set_global_font_scale(1.1)
     
     # Aplicar el tema global definido en temas.py
     tema_global = aplicar_tema_global()
@@ -57,7 +64,7 @@ def iniciar_ui():
     crear_ventana_principal()
     
     # Configurar y mostrar viewport
-    create_viewport(title="Exchange Cripto", width=1728, height=972)
+    create_viewport(title="Exchange Cripto", width=1528, height=1000)
     setup_dearpygui()
     show_viewport()
     

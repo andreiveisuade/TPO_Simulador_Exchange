@@ -1,25 +1,53 @@
+"""
+Este archivo conecta el modelo con la vista:
+
+- Gestiona los hilos para actualización de datos
+- Maneja eventos de la interfaz
+- Controla el flujo de actualización automática
+"""
+
 import threading
 import time
 import dearpygui.dearpygui as dpg
+import config
 from interfaz.cotizaciones.modelo_cotizaciones import *
 from interfaz.cotizaciones.vista_cotizaciones import *
-from config import *
 
+def inicializar_panel_cotizaciones():
+    """Inicializa el panel de cotizaciones"""
+    # Crear panel con los manejadores
+    crear_panel_cotizaciones(
+        btn_actualizar_fn=btn_actualizar_handler,
+        chk_auto_actualizacion_fn=chk_auto_actualizacion_handler
+    )
 
-def actualizar_datos_thread(limite):
-    """Función para actualizar datos en un hilo separado"""
-    global datos_cotizaciones, actualizando
-    actualizando = True
-    
+def cargar_datos_iniciales():
+    """Carga los datos iniciales de la tabla de cotizaciones"""
+    try:
+        print("Iniciando carga de datos iniciales...")
+        btn_actualizar_handler()
+        
+        # Iniciar actualización automática si está habilitada
+        if config.auto_actualizacion:
+            iniciar_actualizacion_automatica()
+    except Exception as e:
+        print(f"Error al cargar datos iniciales: {e}")
+        
+def actualizar_datos_cotizaciones():
+    """Función que actualiza los datos de cotizaciones"""
+    config.actualizando = True
     actualizar_estado_boton(True)
     
     try:
-        # Obtener datos
-        datos_cotizaciones = obtener_tabla_cotizaciones(limite)
+        # Obtener límite de criptomonedas
+        limite = dpg.get_value("input_limite") if dpg.does_item_exist("input_limite") else config.LIMITE_CRIPTOMONEDAS_DEFAULT
         
-        # Recrear la tabla completa con los nuevos datos
+        # Obtener datos
+        config.datos_cotizaciones = obtener_tabla_cotizaciones(limite)
+        
+        # Recrear la tabla con los nuevos datos
         crear_tabla_cotizaciones(
-            datos_cotizaciones,
+            config.datos_cotizaciones,
             formatear_precio,
             formatear_porcentaje,
             formatear_volumen
@@ -27,92 +55,54 @@ def actualizar_datos_thread(limite):
         
         # Actualizar hora de actualización
         actualizar_hora_actualizacion()
-        
     except Exception as e:
         print(f"Error al actualizar datos: {e}")
-        
-    # Restaurar estado
-    actualizar_estado_boton(False)
-    actualizando = False
-
-def iniciar_actualizacion(sender, app_data, user_data):
-    """Inicia el proceso de actualización en un hilo separado"""
-    global actualizando
-    if not actualizando:
-        try:
-            if dpg.does_item_exist("input_limite"):
-                limite = dpg.get_value("input_limite")
-            else:
-                limite = LIMITE_CRIPTOMONEDAS_DEFAULT
-                
-            print(f"Iniciando hilo de actualización con límite: {limite}")
-            thread = threading.Thread(target=actualizar_datos_thread, args=(limite,))
-            thread.daemon = True
-            thread.start()
-        except Exception as e:
-            print(f"Error al iniciar actualización: {e}")
-
-def _actualizacion_periodica():
-    """Hilo para actualización periódica"""
-    global detener_auto_actualizacion, auto_actualizacion
     
-    while not detener_auto_actualizacion:
-        # Esperar el intervalo
-        for _ in range(INTERVALO_ACTUALIZACION):
-            if detener_auto_actualizacion:
+    actualizar_estado_boton(False)
+    config.actualizando = False
+
+def btn_actualizar_handler(sender=None, app_data=None, user_data=None):
+    """Manejador para el botón de actualización"""
+    if not config.actualizando:
+        hilo = threading.Thread(target=actualizar_datos_cotizaciones, daemon=True)
+        hilo.start()
+
+def chk_auto_actualizacion_handler(sender, app_data):
+    """Manejador para el checkbox de actualización automática"""
+    config.auto_actualizacion = app_data
+    
+    if app_data and (config.hilo_auto_actualizacion is None or not config.hilo_auto_actualizacion.is_alive()):
+        iniciar_actualizacion_automatica()
+
+def bucle_actualizacion_automatica():
+    """Hilo que ejecuta actualizaciones periódicas"""
+    while not config.detener_auto_actualizacion:
+        # Esperar el intervalo configurado
+        for _ in range(config.INTERVALO_ACTUALIZACION):
+            if config.detener_auto_actualizacion:
                 break
             time.sleep(1)
-            
-        # Verificar si debe continuar
-        if detener_auto_actualizacion or not auto_actualizacion:
+        
+        # Verificar si debe continuar actualizando
+        if config.detener_auto_actualizacion or not config.auto_actualizacion:
             continue
-            
+        
         # Actualizar si no está en proceso
-        if not actualizando:
-            print("Ejecutando actualización automática...")
-            iniciar_actualizacion(None, None, None)
+        if not config.actualizando:
+            actualizar_datos_cotizaciones()
 
 def iniciar_actualizacion_automatica():
-    """Inicia un hilo para actualizar periódicamente"""
-    global hilo_auto_actualizacion, detener_auto_actualizacion
+    """Inicia el proceso de actualización automática"""
+    config.detener_auto_actualizacion = False
     
-    detener_auto_actualizacion = False
-    
-    if hilo_auto_actualizacion is None or not hilo_auto_actualizacion.is_alive():
-        hilo_auto_actualizacion = threading.Thread(target=_actualizacion_periodica)
-        hilo_auto_actualizacion.daemon = True
-        hilo_auto_actualizacion.start()
-        print(f"Actualización automática iniciada (cada {INTERVALO_ACTUALIZACION} segundos)")
+    # Crear y lanzar el hilo solo si no existe o no está activo
+    if config.hilo_auto_actualizacion is None or not config.hilo_auto_actualizacion.is_alive():
+        hilo = threading.Thread(target=bucle_actualizacion_automatica, daemon=True)
+        hilo.start()
+        config.hilo_auto_actualizacion = hilo
 
-def cambiar_estado_auto_actualizacion(sender, app_data):
-    """Callback para el checkbox de actualización automática"""
-    global auto_actualizacion, detener_auto_actualizacion
-    
-    auto_actualizacion = app_data
-    
-    if auto_actualizacion:
-        # Iniciar la actualización automática
-        iniciar_actualizacion_automatica()
-    else:
-        # Solo desactivar la bandera, el hilo se detendrá automáticamente
-        print("Actualización automática desactivada")
 
-def inicializar_panel_cotizaciones():
-    """Inicializa el panel de cotizaciones"""
-    crear_panel_cotizaciones(
-        callback_actualizacion=iniciar_actualizacion,
-        callback_auto_actualizacion=cambiar_estado_auto_actualizacion
-    )
 
-def cargar_datos_iniciales():
-    """Carga los datos iniciales de la tabla de cotizaciones"""
-    try:
-        print("Iniciando carga de datos iniciales...")
-        iniciar_actualizacion(None, None, None)
-        
-        # Iniciar actualización automática
-        if auto_actualizacion:
-            iniciar_actualizacion_automatica()
-            
-    except Exception as e:
-        print(f"Error al cargar datos iniciales: {e}")
+def detener_servicios():
+    """Detiene los hilos y servicios antes de cerrar la aplicación"""
+    config.detener_auto_actualizacion = True
